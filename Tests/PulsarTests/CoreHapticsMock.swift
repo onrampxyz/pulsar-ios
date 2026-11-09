@@ -24,6 +24,8 @@ final class HapticMockRecorder {
     var engineCallsOnMainThread = 0
     /// Pattern players built off the main thread (the wrapper has to hop to main itself).
     var playerBuildsOffMainThread = 0
+    /// How long `CHHapticEngine()` takes; stands in for the slow haptic server of Apple's review devices.
+    var engineInitDelay: TimeInterval = 0
 
     func reset() {
         enginesCreated = 0
@@ -35,6 +37,7 @@ final class HapticMockRecorder {
         sentParameters.removeAll()
         engineCallsOnMainThread = 0
         playerBuildsOffMainThread = 0
+        engineInitDelay = 0
     }
 }
 
@@ -84,6 +87,8 @@ enum CoreHapticsMock {
         let initBlock: @convention(block) (AnyObject, UnsafeMutableRawPointer?) -> AnyObject? = { obj, _ in
             HapticMockRecorder.shared.enginesCreated += 1
             if Thread.isMainThread { HapticMockRecorder.shared.engineCallsOnMainThread += 1 }
+            let delay = HapticMockRecorder.shared.engineInitDelay
+            if delay > 0 { Thread.sleep(forTimeInterval: delay) }
             return obj
         }
         swizzle(engine, NSSelectorFromString("initAndReturnError:"), initBlock)
